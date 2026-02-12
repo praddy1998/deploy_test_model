@@ -1,0 +1,16 @@
+{
+  "active_model_version": "2.0.0",
+  "available_versions": [
+    "1.0.0",
+    "2.0.0"
+  ],
+  "paths": {
+    "1.0.0": "model_v1.json",
+    "2.0.0": "model_v2.json"
+  },
+  "rollback_instructions": [
+    "To roll back, set active_model_version to the desired version and call POST /model/reload (if implemented), or restart the service.",
+    "CI/tests should validate both versions load successfully and return schema-compliant predictions."
+  ],
+  "schema_version": "model_manifest_v1"
+}

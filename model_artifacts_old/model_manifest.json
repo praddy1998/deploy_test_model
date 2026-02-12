@@ -1,0 +1,13 @@
+{
+  "active_model_version": "1.0.0",
+  "versions": {
+    "1.0.0": {
+      "artifact_file": "model_v1.json",
+      "description": "Baseline conservative risk classifier"
+    },
+    "2.0.0": {
+      "artifact_file": "model_v2.json",
+      "description": "Stricter rules with higher sensitivity to negative signals"
+    }
+  }
+}

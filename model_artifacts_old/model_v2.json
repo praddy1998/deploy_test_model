@@ -1,0 +1,41 @@
+{
+  "model_name": "risk_triad_classifier",
+  "model_version": "2.0.0",
+  "created_at": "2025-02-01T14:30:00Z",
+  "schema_version": "v1",
+  "provider": "mock",
+  "config": {
+    "base_score": 0.35,
+    "channel_weights": {
+      "amazon": 0.08,
+      "ebay": 0.15,
+      "shopify": 0.04,
+      "direct": 0.0,
+      "wholesale": -0.03
+    },
+    "price_rules": [
+      {"condition": "price > 1000", "contribution": 0.20, "reason": "high_price_item"},
+      {"condition": "price > 500", "contribution": 0.12, "reason": "moderate_price_item"},
+      {"condition": "price < 10", "contribution": -0.03, "reason": "low_price_item"}
+    ],
+    "units_rules": [
+      {"condition": "units > 500", "contribution": 0.18, "reason": "bulk_order"},
+      {"condition": "units > 100", "contribution": 0.08, "reason": "large_order"},
+      {"condition": "units < 5", "contribution": -0.02, "reason": "small_order"}
+    ],
+    "text_rules": [
+      {"keyword": "urgent", "contribution": 0.15, "reason": "urgency_signal"},
+      {"keyword": "rush", "contribution": 0.12, "reason": "rush_signal"},
+      {"keyword": "discount", "contribution": 0.08, "reason": "discount_request"},
+      {"keyword": "fraud", "contribution": 0.25, "reason": "fraud_keyword"},
+      {"keyword": "suspicious", "contribution": 0.20, "reason": "suspicious_keyword"},
+      {"keyword": "cancel", "contribution": 0.05, "reason": "cancel_signal"},
+      {"keyword": "risk", "contribution": 0.10, "reason": "risk_keyword"},
+      {"keyword": "threat", "contribution": 0.18, "reason": "threat_keyword"}
+    ],
+    "risk_thresholds": {
+      "low_risk_max": 0.35,
+      "medium_risk_max": 0.65
+    }
+  }
+}

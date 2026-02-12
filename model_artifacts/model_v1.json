@@ -1,0 +1,87 @@
+{
+  "created_at": "2026-02-06T08:28:02Z",
+  "description": "Deterministic rule-based risk classifier (baseline).",
+  "features_expected": [
+    "price",
+    "units",
+    "channel"
+  ],
+  "label_space": [
+    "low_risk",
+    "medium_risk",
+    "high_risk"
+  ],
+  "model_name": "risk_triad_classifier",
+  "model_version": "1.0.0",
+  "rule_config": {
+    "base_score": 0.1,
+    "channel_weights": {
+      "amazon": 0.1,
+      "other": 0.05,
+      "shopify": 0.06,
+      "walmart": 0.08
+    },
+    "price_rules": [
+      {
+        "add": 0.35,
+        "if_price_gte": 80,
+        "reason": "high_price"
+      },
+      {
+        "add": 0.2,
+        "if_price_gte": 30,
+        "reason": "mid_price"
+      },
+      {
+        "add": 0.05,
+        "if_price_lt": 30,
+        "reason": "low_price"
+      }
+    ],
+    "text_rules": [
+      {
+        "add": 0.25,
+        "keywords_any": [
+          "chargeback",
+          "refund",
+          "complaint"
+        ],
+        "reason": "negative_signal_text"
+      },
+      {
+        "add": -0.05,
+        "keywords_any": [
+          "launch",
+          "growth",
+          "optimize"
+        ],
+        "reason": "positive_signal_text"
+      }
+    ],
+    "thresholds": {
+      "low_risk_max": 0.33,
+      "medium_risk_max": 0.66
+    },
+    "units_rules": [
+      {
+        "add": 0.35,
+        "if_units_gte": 500,
+        "reason": "high_units"
+      },
+      {
+        "add": 0.2,
+        "if_units_gte": 100,
+        "reason": "mid_units"
+      },
+      {
+        "add": 0.05,
+        "if_units_lt": 100,
+        "reason": "low_units"
+      }
+    ]
+  },
+  "schema_version": "model_artifact_v1",
+  "scoring": {
+    "notes": "score is computed from a weighted sum of rule contributions and clamped to [0,1]."
+  }
+}
