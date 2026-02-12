@@ -17,9 +17,9 @@ def test_email_redaction():
 
 def test_token_redaction():
     """Token-like strings are redacted."""
-    text = "Use key sk_live_abc123def456ghi789jkl012mno"
+    text = "Use key sk_test_1234567890abcdefghijklmnopqrstuvwxyz"
     redacted = redact_pii(text)
-    assert "sk_live_abc123def456ghi789jkl012mno" not in redacted
+    assert "sk_test_1234567890abcdefghijklmnopqrstuvwxyz" not in redacted
     assert "[TOKEN_REDACTED]" in redacted
 
 
