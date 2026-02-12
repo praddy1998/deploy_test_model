@@ -1,0 +1,267 @@
+Take-Home Task: Production-Ready Mock ML Inference API
+Overview
+This take-home task evaluates DevOps and MLOps fundamentals by asking you to design, implement, and ship a small, production-style ML inference API.
+
+This is NOT an agent or LLM task.
+
+You will serve predictions from a deterministic, rule-based mock model provided as versioned model artifacts. The focus of this exercise is on:
+• CI/CD discipline
+• Containerization and reproducibility
+• Model artifact loading, versioning, and rollback
+• Auditability and security (PII redaction, traceability)
+• Observability (logs and metrics)
+• Testing quality and determinism
+
+No real ML models, no LLMs (local or hosted), and no paid software may be used.
+
+Timebox: 2–3 hours.
+What You Are Building
+You are building a single HTTP microservice that behaves like a production ML inference service.
+
+The service must:
+• Load a model artifact from disk at startup
+• Serve predictions via an HTTP API
+• Expose model metadata and health endpoints
+• Support model version rollback via configuration
+• Emit audit logs, metrics, and structured application logs
+
+Think of this as a simplified version of a model-serving service (e.g., a very small SageMaker / Vertex-style endpoint), implemented locally.
+Provided Model Artifacts (Mandatory)
+You are provided with a set of deterministic mock model artifacts (JSON files). These simulate a real ML model registry.
+
+You MUST use these artifacts exactly as provided.
+
+Directory structure:
+model_artifacts/
+  model_manifest.json
+  model_v1.json
+  model_v2.json
+  CHECKSUMS.json
+
+model_manifest.json:
+• Specifies which model version is currently active
+• Maps model versions to artifact files
+• Controls rollout and rollback
+
+model_v1.json (version 1.0.0):
+• Baseline deterministic rules
+• More conservative risk classification
+
+model_v2.json (version 2.0.0):
+• Stricter rules
+• Higher sensitivity to negative text signals
+• Different thresholds and weights
+
+CHECKSUMS.json:
+• Contains sha256 checksums of each artifact
+• Used to validate and report artifact integrity
+
+Your service must:
+• Load model_manifest.json
+• Load the active model version specified
+• Compute and expose the sha256 checksum of the active model file
+• Allow rollback by switching active_model_version and reloading the model
+Mock Model Behavior (Deterministic Rules)
+Each model artifact defines a rule-based risk classifier.
+
+Inputs:
+• text (string)
+• features.price (float)
+• features.units (int)
+• features.channel (string)
+
+Scoring logic (must be deterministic):
+score =
+  base_score
+  + channel_weight(channel)
+  + price_rule_contribution(price)
+  + units_rule_contribution(units)
+  + text_rule_contribution(text)
+
+Clamp score to [0.0, 1.0].
+
+Label assignment:
+• score <= low_risk_max      → low_risk
+• score <= medium_risk_max   → medium_risk
+• score >  medium_risk_max   → high_risk
+
+Reasons:
+• Return the list of rule “reasons” that contributed to the score.
+
+IMPORTANT:
+Given the same input payload and the same model version, output MUST be identical across runs.
+API Requirements
+Base URL: http://localhost:8000
+
+A) POST /predict
+Headers:
+• Content-Type: application/json
+• X-User-Email: <email> (required; must never be stored in raw form)
+
+Request body:
+{
+  "request_id": "optional string",
+  "inputs": [
+    {
+      "id": "string",
+      "text": "string",
+      "features": {
+        "price": 12.34,
+        "units": 100,
+        "channel": "amazon"
+      }
+    }
+  ]
+}
+
+Rules:
+• inputs must contain 1–50 items
+• text must be non-empty
+• features is optional but if present must be an object
+
+Response body:
+{
+  "request_id": "string",
+  "model": {
+    "provider": "mock",
+    "model_name": "risk_triad_classifier",
+    "model_version": "string",
+    "artifact_checksum_sha256": "string",
+    "schema_version": "v1"
+  },
+  "predictions": [
+    {
+      "id": "string",
+      "label": "low_risk|medium_risk|high_risk",
+      "score": 0.0,
+      "reasons": ["string"]
+    }
+  ],
+  "guardrails_triggered": ["string"],
+  "latency_ms": 123
+}
+
+B) GET /model
+Returns metadata for the currently loaded model:
+{
+  "provider": "mock",
+  "model_name": "risk_triad_classifier",
+  "model_version": "string",
+  "created_at": "ISO 8601",
+  "artifact_path": "string",
+  "artifact_checksum_sha256": "string",
+  "rule_config": { ... }
+}
+
+C) GET /healthz
+Returns 200 if service is running.
+
+D) GET /readyz
+Returns 200 only if a valid model artifact is loaded; otherwise 503.
+
+E) GET /metrics
+Expose operational metrics (Prometheus text preferred).
+
+F) OPTIONAL BONUS: POST /model/reload
+Reloads model_manifest.json and switches the active model without restarting.
+Guardrails and Security (Mandatory)
+1) Policy Block
+If input text includes disallowed intent (e.g., “steal credentials”, “bypass access controls”, “phish”, “exfiltrate data”):
+• Return HTTP 400
+• Include guardrails_triggered = ["policy_block"]
+• Write an audit record reflecting the block
+
+2) PII and Secret Redaction
+Before writing logs or audit records, redact:
+• Email addresses
+• Token-like or API-key-like strings
+
+3) Identity Handling
+Clients must send X-User-Email.
+You must:
+• Lowercase and hash it using sha256
+• Store only the hash in audit logs
+Audit Logging (Mandatory)
+Every POST /predict request must append exactly one JSON object to an append-only JSONL file:
+./audit_logs/audit.jsonl
+
+Audit record must include:
+• timestamp (ISO 8601)
+• request_id
+• user_hash
+• route
+• model_version
+• artifact_checksum_sha256
+• num_inputs
+• guardrails_triggered
+• status (success | blocked | error)
+• latency_ms
+• response_checksum_sha256
+
+Rules:
+• Append-only
+• audit_logs/ must be gitignored
+• Failures to write audit logs must be counted in metrics
+Observability
+1) Structured Logs
+Emit structured logs (JSON preferred) to stdout.
+Logs must be redacted and safe.
+
+2) Metrics
+Minimum required metrics:
+• http_requests_total{route,method,status}
+• predict_requests_total
+• predict_errors_total
+• audit_write_errors_total
+• http_request_latency_ms_p95 (approximate)
+
+3) Error Responses
+All errors must follow a consistent JSON schema.
+Containerization and Local Run
+You must provide:
+• Dockerfile
+• docker-compose.yml
+
+The evaluator must be able to run:
+docker compose up --build
+
+Service must be accessible at http://localhost:8000.
+CI/CD Requirements
+Configure GitHub Actions to run on pull_request:
+• Linting (ruff preferred)
+• Unit tests
+• Docker build
+
+CI must pass with no external dependencies.
+Testing Requirements (Minimum 8)
+1) /healthz returns 200
+2) /readyz returns 200 when model is loaded
+3) /predict happy path returns correct schema
+4) Determinism: same input → same output (for same model version)
+5) Policy block returns HTTP 400
+6) Audit log entry appended
+7) Redaction removes raw emails/tokens
+8) Metrics increment correctly
+LLM Usage Transparency
+If you used an LLM to help write code, CI, Docker files, or tests:
+• Include all prompts in a prompts/ directory
+• Include prompts/README.md explaining validation steps
+
+If you did not use an LLM:
+• Still include prompts/README.md stating “No LLM used.”
+Submission and Evaluation
+Submit:
+• GitHub repository link
+• Ensure CI is green
+
+Automatic Fail:
+• Cannot run via docker compose
+• Missing or incorrect API schema
+• Missing audit logs or redaction
+• Missing CI
+
+Strong Signals:
+• Clean separation of concerns
+• Correct model rollback behavior
+• Clear README
+• Production-minded logging, metrics, and tests

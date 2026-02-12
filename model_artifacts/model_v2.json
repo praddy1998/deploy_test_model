@@ -1,0 +1,89 @@
+{
+  "created_at": "2026-02-06T08:28:02Z",
+  "description": "Deterministic rule-based risk classifier (v2) with stricter high-risk thresholds and higher text sensitivity.",
+  "features_expected": [
+    "price",
+    "units",
+    "channel"
+  ],
+  "label_space": [
+    "low_risk",
+    "medium_risk",
+    "high_risk"
+  ],
+  "model_name": "risk_triad_classifier",
+  "model_version": "2.0.0",
+  "rule_config": {
+    "base_score": 0.12,
+    "channel_weights": {
+      "amazon": 0.12,
+      "other": 0.05,
+      "shopify": 0.07,
+      "walmart": 0.09
+    },
+    "price_rules": [
+      {
+        "add": 0.4,
+        "if_price_gte": 80,
+        "reason": "high_price"
+      },
+      {
+        "add": 0.22,
+        "if_price_gte": 30,
+        "reason": "mid_price"
+      },
+      {
+        "add": 0.04,
+        "if_price_lt": 30,
+        "reason": "low_price"
+      }
+    ],
+    "text_rules": [
+      {
+        "add": 0.35,
+        "keywords_any": [
+          "chargeback",
+          "refund",
+          "complaint",
+          "lawsuit",
+          "fraud"
+        ],
+        "reason": "negative_signal_text_v2"
+      },
+      {
+        "add": -0.06,
+        "keywords_any": [
+          "launch",
+          "growth",
+          "optimize"
+        ],
+        "reason": "positive_signal_text"
+      }
+    ],
+    "thresholds": {
+      "low_risk_max": 0.3,
+      "medium_risk_max": 0.6
+    },
+    "units_rules": [
+      {
+        "add": 0.4,
+        "if_units_gte": 500,
+        "reason": "high_units"
+      },
+      {
+        "add": 0.22,
+        "if_units_gte": 100,
+        "reason": "mid_units"
+      },
+      {
+        "add": 0.04,
+        "if_units_lt": 100,
+        "reason": "low_units"
+      }
+    ]
+  },
+  "schema_version": "model_artifact_v1",
+  "scoring": {
+    "notes": "v2 increases penalty for negative text and makes high_risk easier to reach for large price/units."
+  }
+}
