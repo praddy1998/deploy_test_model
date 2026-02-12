@@ -1,0 +1,11 @@
+services:
+  inference-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./audit_logs:/app/audit_logs
+    environment:
+      - MODEL_DIR=/app/model_artifacts
+      - AUDIT_LOG_DIR=/app/audit_logs
+    restart: unless-stopped
